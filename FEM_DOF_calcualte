@@ -1,0 +1,126 @@
+%Calculate DOF with certainly exposure energy
+clear;clf;clc;
+
+%excel data input
+[~, ~, A3]=xlsread('M4_PTD.xlsx');
+A4=A3(2:end,:);
+Ax=cell2mat(A4(:,1));
+Ay=cell2mat(A4(1,:));
+Am=find(~isnan(Ax));
+An=find(~isnan(Ay));
+x=cell2mat(A4(Am,1));
+y=cell2mat(A4(1,An));
+z=A4(Am+1,An);
+z=str2double(z);
+
+%热图
+subplot(2,2,1);
+pcolor(x,y,z');
+xlabel('Focus/um');
+ylabel('Energy/mJ');
+title('M4-PTD:CD-focus-Energy');
+shading interp
+colorbar;
+
+% bossung curve (with certainly exposure energy)
+subplot(2,2,2)
+c1=rand(1,length(y));
+c2=rand(1,length(y));
+c3=rand(1,length(y));
+c=[c1' c2' c3'];
+P=zeros(length(x),length(y));
+X=P;Z=P;
+A=zeros(length(y),3);
+x_s=min(x):0.001:max(x);
+h1=zeros(1,length(y));
+h2=h1;
+for i=1:length(y)
+    flag=0;
+    for j=1:length(x)
+        if ~isnan(z(j,i))
+            flag=flag+1;
+        end
+    end
+    if flag==0
+        continue;
+    end
+    P(1:flag,i)=find(isnan(z(:,i))~=1);
+    X(1:flag,i)=x(P(1:flag,i),1);
+    Z(1:flag,i)=z(P(1:flag,i),i);
+    h1(1,i)=scatter(X(1:flag,i),Z(1:flag,i),[],c(i,:));
+    hold on
+    A(i,1:end)=polyfit(X(1:flag,i),Z(1:flag,i),2);
+    a=polyval(A(i,1:end),x_s);
+    h2(1,i)=plot(x_s,a,'linewidth',2,'color',c(i,:));
+    hold on 
+end
+xlabel('Focus/um');ylabel('CD/nm');
+b=find(h1~=0);
+h1=h1(1,b);h2=h2(1,b);
+y_b=y(1,b)';
+legend([h1,h2],num2str([y_b;y_b]));
+
+%input target parameter  
+target_energy=input('please input the target exposure energy(included):');
+CD_target=input('please input the target CD :');
+CD_spectrum=input('please input the CDs spectrum:');
+CD_max=CD_target*(1+CD_spectrum);CD_min=CD_target*(1-CD_spectrum);
+
+%等高线图
+subplot(2,2,3);
+contour(x,y,z',[CD_min,CD_target,CD_max],'ShowText','on','linewidth',2);
+xlabel('Focus/um');
+ylabel('Energy/mJ');
+colorbar;
+
+%graph
+subplot(2,2,4);
+q=find(target_energy==y);
+p=find(isnan(z(:,q))~=1);
+X=x(p,1);Z=z(p,q);
+scatter(X,Z);
+hold on
+A=polyfit(X,Z,2);
+x_s=min(x):0.001:max(x);
+x_s=x_s';
+a=polyval(A,x_s);
+plot(x_s,a,'linewidth',2);
+hold on
+plot(x_s,CD_max*ones(length(x_s),1),'k-.',x_s,CD_target*ones(length(x_s),1),'k-.',x_s,CD_min*ones(length(x_s),1),'k-.');
+hold on
+xlabel('Focus/um');
+ylabel('CD/nm');
+
+% Caculate the DOF with certainly Exposure Energy(E_max,E_min);
+if A(1)==0
+    disp('line，no root');
+else
+    if (((-A(2)^2+4*A(1)*A(3))/(4*A(1)))-CD_min)*(((-A(2)^2+4*A(1)*A(3))/(4*A(1)))-CD_max)>=0
+    disp('error:unexpcetional energy');
+    else
+    root_CD_target=findroot2(A,CD_target);
+    root_CD_min=findroot2(A,CD_min);
+    root_CD_max=findroot2(A,CD_max);
+    DOF_CD_target=abs(root_CD_target(1)-root_CD_target(2));
+    DOF_CD_min=abs(root_CD_min(1)-root_CD_min(2));
+    DOF_CD_max=abs(root_CD_max(1)-root_CD_max(2));
+    DOF=max([DOF_CD_target,DOF_CD_min,DOF_CD_max]);
+    disp(DOF);
+    end
+end
+
+function r=findroot2(coefficient,target)  %二次曲线求根
+if coefficient(1)==0
+    r(1)=-(coefficient(3)-target)/coefficient(2);
+    r(2)=r(1);
+else
+    if(coefficient(2)^2-4*coefficient(1)*(coefficient(3)-target))<0
+        r(1)=0;
+        r(2)=r(1); %实际无根 置为0 
+%     disp('no root');
+    else
+    r(1)=(-coefficient(2)+sqrt(coefficient(2)^2-4*coefficient(1)*(coefficient(3)-target)))/(2*coefficient(1));
+    r(2)=(-coefficient(2)-sqrt(coefficient(2)^2-4*coefficient(1)*(coefficient(3)-target)))/(2*coefficient(1));
+    end
+end
+end
