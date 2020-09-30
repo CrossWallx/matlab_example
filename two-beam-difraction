@@ -1,0 +1,71 @@
+%opening
+handles.myE0=1;
+guidata(hObject,handles);
+lamda=0.193;
+theta=0;
+pitch=50;
+width=25;
+defocus=abs(lamda/(cos(theta)-sqrt(1-(lamda/pitch-sin(theta))^2)));
+x=linspace(-100,100,100);
+z=linspace(-100,100,100);
+[handles.Xrange,handles.Zrange]=meshgrid(x,z);
+guidata(hObject,handles);
+a0=width/pitch;
+a1=sin(pi*width/pitch)/pi;
+I_xz=2*handles.myE0*(a0^2+a1^2+2*a0*a1*cos((sqrt(1-(lamda/pitch-sin(theta))^2-...
+    cos(theta))*2*pi*handles.Zrange/lamda)).*cos(2*pi*handles.Xrange/pitch));
+surf(handles.axes1,handles.Xrange,handles.Zrange,I_xz);
+val_view=get(handles.xzradiobutton,'value');
+if isequal(val_view,1)
+    view(0,90);
+else
+    view(-30,40);
+end
+val_shading=get(handles.shadingradiobutton,'value');
+if isequal(val_shading,1)
+    shading(handles.axes1,'interp');
+else
+    shading(handles.axes1,'faceted');
+end
+xlabel('x/um');ylabel('z/um');zlabel('Intensity');
+title('Two beam image with OAI');
+set(handles.defocusedit,'string',['defocus:',num2str(defocus)]);
+
+%function
+theta=get(handles.thetaslider,'value');
+pitch=50+get(handles.pitchslider,'value');
+width=get(handles.widthslider,'value');
+val_lamda=get(handles.wavelengthpopup,'value');
+str_lamda=get(handles.wavelengthpopup,'string');
+switch str_lamda{val_lamda}
+    case '157nm'
+        lamda=0.157;
+    case '193nm'
+        lamda=0.193;
+    case '248nm'
+        lamda=0.248;
+end
+defocus=abs(lamda/(cos(theta)-sqrt(1-(lamda/pitch-sin(theta))^2)));
+a0=width/pitch;
+a1=sin(pi*width/pitch)/pi;
+I_xz=2*handles.myE0*(a0^2+a1^2+2*a0*a1*cos((sqrt(1-(lamda/pitch-sin(theta))^2-...
+    cos(theta))*2*pi*handles.Zrange/lamda)).*cos(2*pi*handles.Xrange/pitch));
+surf(handles.axes1,handles.Xrange,handles.Zrange,I_xz);
+val_view=get(handles.xzradiobutton,'value');
+if isequal(val_view,1)
+    view(0,90);
+else
+    view(-30,40);
+end
+val_shading=get(handles.shadingradiobutton,'value');
+if isequal(val_shading,1)
+    shading(handles.axes1,'interp');
+else
+    shading(handles.axes1,'faceted');
+end
+xlabel('x/um');ylabel('z/um');zlabel('Intensity');
+title('Two beam image with OAI');
+set(handles.defocusedit,'string',['Defocus(um):',num2str(defocus)]);
+set(handles.thetaedit,'string',['Theta(rad)):',num2str(theta)]);
+set(handles.pitchedit,'string',['Pitch(um):',num2str(pitch)]);
+set(handles.widthedit,'string',['Width(um):',num2str(width)]);
